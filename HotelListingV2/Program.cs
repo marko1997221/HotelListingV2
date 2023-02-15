@@ -5,6 +5,7 @@ using AutoMapper;
 using HotelListingV2.Implementacija;
 using HotelListingV2.Interfejsi;
 using HotelListingV2.Configuration;
+using Microsoft.AspNetCore.Identity;
 
 internal class Program
 {
@@ -20,7 +21,9 @@ internal class Program
             options.UseSqlServer(cnnString);
         });
         builder.Services.AddControllers();
-        
+        builder.Services.AddIdentityCore<ApiUser>()
+            .AddRoles<IdentityRole>().
+            AddEntityFrameworkStores<HotelListingDbContext>();
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -28,6 +31,7 @@ internal class Program
         builder.Services.AddScoped(typeof(IGenericInterface<>),typeof(GenericImplementation<>));
         builder.Services.AddScoped<ICountyInterface, CountryImplementation>();
         builder.Services.AddScoped<IHotelInterface, HotelImplementacija>();
+        builder.Services.AddScoped<IAuthMenager, AuthMenager>();
         builder.Host.UseSerilog((ctx, lg) =>
         {
             lg.WriteTo.Console().ReadFrom.Configuration(ctx.Configuration);
