@@ -42,7 +42,7 @@ namespace HotelListingV2.Implementacija
             
             var message=await userManager.CreateAsync(user,apiUserDto.Password);
             if (message.Succeeded)
-            {
+    {
                 await userManager.AddToRoleAsync(user,"User");
             }
             return message.Errors;
