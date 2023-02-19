@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using HotelListingV2.Middleware;
+using Microsoft.AspNetCore.Builder;
 
 internal class Program
 {
@@ -56,6 +57,12 @@ internal class Program
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWTSettings:Key"]))
             };
         });
+        builder.Services.AddResponseCaching(options =>
+        {
+            options.MaximumBodySize= 1024;
+            options.UseCaseSensitivePaths= true;
+        });
+
         builder.Host.UseSerilog((ctx, lg) =>
         {
             lg.WriteTo.Console().ReadFrom.Configuration(ctx.Configuration);
@@ -76,9 +83,25 @@ internal class Program
             app.UseSwagger();
             app.UseSwaggerUI();
         }
+       
         app.UseMiddleware<ExceptionMiddleware>();
         app.UseSerilogRequestLogging();
         app.UseCors("AllowAll");
+        //deo za kesiranje obavezno je stavitiga ispod CORS
+        app.UseResponseCaching();
+        app.Use(async (context, next) =>
+        {
+            context.Response.GetTypedHeaders().CacheControl =
+            new Microsoft.Net.Http.Headers.CacheControlHeaderValue()
+            {
+                Public = true,
+                MaxAge = TimeSpan.FromSeconds(5),
+            };
+            context.Response.Headers[Microsoft.Net.Http.Headers.HeaderNames.Vary] =
+            new string[] { "Accept-Encoding" };
+            await next();
+        });
+            // ovaj blok pre je za kesiranje
         app.UseHttpsRedirection();
         app.UseAuthentication();
         app.UseAuthorization();
