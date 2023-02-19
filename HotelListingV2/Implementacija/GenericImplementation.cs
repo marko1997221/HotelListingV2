@@ -15,6 +15,7 @@ namespace HotelListingV2.Implementacija
         public async Task<T> CreateAsync(T entity)
         {
             await context.AddAsync<T>(entity);
+            await context.SaveChangesAsync();
             return entity;
         }
 

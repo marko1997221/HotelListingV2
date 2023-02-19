@@ -7,6 +7,8 @@ namespace HotelListingV2.Interfejsi
     public interface IAuthMenager
     {
         Task<IEnumerable<IdentityError>> Register(ApiUserDto apiUserDto);
-        Task<bool> LogIn(LogInDto logInDto);
+        Task<AuthResponseDto> LogIn(LogInDto logInDto);
+        Task<string> CreateRefreshToken();
+        Task<AuthResponseDto> VerifyRefreshToken(AuthResponseDto authResponseDto);
     }
 }

@@ -6,6 +6,10 @@ using HotelListingV2.Implementacija;
 using HotelListingV2.Interfejsi;
 using HotelListingV2.Configuration;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using HotelListingV2.Middleware;
 
 internal class Program
 {
@@ -22,8 +26,10 @@ internal class Program
         });
         builder.Services.AddControllers();
         builder.Services.AddIdentityCore<ApiUser>()
-            .AddRoles<IdentityRole>().
-            AddEntityFrameworkStores<HotelListingDbContext>();
+            .AddRoles<IdentityRole>()
+            .AddTokenProvider<DataProtectorTokenProvider<ApiUser>>("HotelListingApi")
+            .AddEntityFrameworkStores<HotelListingDbContext>()
+            .AddDefaultTokenProviders();
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -32,6 +38,24 @@ internal class Program
         builder.Services.AddScoped<ICountyInterface, CountryImplementation>();
         builder.Services.AddScoped<IHotelInterface, HotelImplementacija>();
         builder.Services.AddScoped<IAuthMenager, AuthMenager>();
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        }).AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero,
+                ValidIssuer = builder.Configuration["JWTSettings:Issuer"],
+                ValidAudience = builder.Configuration["JWTSettings:Audiance"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWTSettings:Key"]))
+            };
+        });
         builder.Host.UseSerilog((ctx, lg) =>
         {
             lg.WriteTo.Console().ReadFrom.Configuration(ctx.Configuration);
@@ -52,11 +76,11 @@ internal class Program
             app.UseSwagger();
             app.UseSwaggerUI();
         }
-        
+        app.UseMiddleware<ExceptionMiddleware>();
         app.UseSerilogRequestLogging();
         app.UseCors("AllowAll");
         app.UseHttpsRedirection();
-        
+        app.UseAuthentication();
         app.UseAuthorization();
 
         app.MapControllers();
